@@ -1,13 +1,13 @@
 import express from "express";
 import socketIO from "socket.io";
 import http from "http";
-import { Users } from "./interfaces/Users";
+import { UsersRepository, User } from "./Users";
 import dotenv from "dotenv";
 
 dotenv.config();
 const app = express();
 
-let onlineUsers = {} as Users;
+let onlineUsers = new UsersRepository();
 
 const server = http.createServer(app);
 const io = new socketIO.Server(server, {
@@ -17,16 +17,25 @@ const io = new socketIO.Server(server, {
   },
 });
 
-io.on("connection", (socket) => {
+io.on("connection", (socket: socketIO.Socket) => {
   socket.on("onlineUser", ({ details }) => {
-    onlineUsers[socket.id] = details;
-    io.emit("usersChanged", { onlineUsers });
+    onlineUsers.pushUser(new User(details, socket.id));
+
+    io.emit("usersChanged", {
+      onlineUsers: onlineUsers.getUsers,
+    });
   });
 
   socket.on("disconnect", () => {
-    delete onlineUsers[socket.id];
+    try {
+      onlineUsers.removeUser(socket.id);
 
-    io.emit("usersChanged", { onlineUsers });
+      io.emit("usersChanged", {
+        onlineUsers: onlineUsers.getUsers,
+      });
+    } catch (e) {
+      return new Error(e);
+    }
   });
 });
 
