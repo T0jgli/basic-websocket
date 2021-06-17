@@ -1,0 +1,9 @@
+version: "3.3"
+
+services:
+  websocket-dc:
+    image: websocket-dc
+    container_name: websocket-dc
+    build: .
+    ports:
+      - 3000:3000
