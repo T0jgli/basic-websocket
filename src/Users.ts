@@ -1,7 +1,11 @@
 import { IUsers } from "./interfaces";
 
 export class User implements IUsers {
-  constructor(public userId: string, public socketId: string) {}
+  constructor(
+    public userId: string,
+    public socketId: string,
+    public isMobile: boolean
+  ) {}
 }
 
 export class UsersRepository {
