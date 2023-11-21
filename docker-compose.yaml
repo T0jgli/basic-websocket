@@ -5,6 +5,7 @@ services:
     image: websocket-dc
     container_name: websocket-dc
     restart: unless-stopped
+    pull_policy: build
     build: .
     labels:
       - traefik.http.routers.websocket-dc.rule=Host(`websocket-dc.kvlk.hu`)
