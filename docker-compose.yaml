@@ -5,14 +5,15 @@ services:
     image: websocket-dc
     container_name: websocket-dc
     build: .
+    env_file: stack.env
     labels:
       - traefik.http.routers.websocket-dc.rule=Host(`websocket-dc.kvlk.hu`)
       - traefik.http.routers.websocket-dc.tls=true
       - traefik.http.routers.websocket-dc.entrypoints=websecure
       - traefik.http.routers.websocket-dc.middlewares=security-headers@file
       - traefik.http.services.websocket-dc.loadbalancer.server.port=3000
-#    ports:
-#      - 3000:3000
+    #    ports:
+    #      - 3000:3000
     networks:
       - web
 networks:
