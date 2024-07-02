@@ -4,14 +4,17 @@ services:
   websocket-dc:
     image: websocket-dc
     container_name: websocket-dc
-    build: .
+    restart: unless-stopped
+    pull_policy: build
     env_file: stack.env
+    build: .
     labels:
       - traefik.http.routers.websocket-dc.rule=Host(`websocket-dc.kvlk.hu`)
       - traefik.http.routers.websocket-dc.tls=true
       - traefik.http.routers.websocket-dc.entrypoints=websecure
       - traefik.http.routers.websocket-dc.middlewares=security-headers@file
       - traefik.http.services.websocket-dc.loadbalancer.server.port=3000
+      - "com.centurylinklabs.watchtower.enable=false"
     #    ports:
     #      - 3000:3000
     networks:
