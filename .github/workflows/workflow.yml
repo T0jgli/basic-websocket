@@ -25,13 +25,17 @@ jobs:
           registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
+      - name: Set short git commit SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: Build and push
         id: build-image
         uses: docker/build-push-action@v3
         with:
           platforms: linux/arm64
           push: true
-          tags: ${{ secrets.REGISTRY_URL }}/websocket-dc:latest
+          tags: |
+            ${{ secrets.REGISTRY_URL }}/websocket-dc:${{ github.run_number }}-${{ steps.vars.outputs.sha_short }}
           build-args: ${{ secrets.ENV_FILE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
