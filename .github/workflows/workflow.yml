@@ -14,13 +14,15 @@ jobs:
     steps:
       - id: checkout
         name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v4
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v4.1.2
       - name: Login to private registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USER }}
@@ -29,13 +31,25 @@ jobs:
         id: vars
         run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
       - name: Build and push
-        id: build-image
-        uses: docker/build-push-action@v3
+        id: docker-build
+        uses: docker/build-push-action@v7
         with:
-          platforms: linux/arm64
           push: true
+          platforms: linux/arm64
+          provenance: false
+          sbom: false
           tags: |
             ${{ secrets.REGISTRY_URL }}/websocket-dc:${{ github.run_number }}-${{ steps.vars.outputs.sha_short }}
           build-args: ${{ secrets.ENV_FILE }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Sign image
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+          IMAGE_REF: ${{ secrets.REGISTRY_URL }}/websocket-dc@${{ steps.docker-build.outputs.digest }}
+        run: cosign sign --key env://COSIGN_PRIVATE_KEY --use-signing-config=false --tlog-upload=false --new-bundle-format=false --yes "$IMAGE_REF"
+      - name: Verify signature
+        env:
+          IMAGE_REF: ${{ secrets.REGISTRY_URL }}/websocket-dc@${{ steps.docker-build.outputs.digest }}
+        run: cosign verify --key cosign.pub --insecure-ignore-tlog=true "$IMAGE_REF"
