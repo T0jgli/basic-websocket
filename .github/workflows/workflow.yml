@@ -53,3 +53,34 @@ jobs:
         env:
           IMAGE_REF: ${{ secrets.REGISTRY_URL }}/websocket-dc@${{ steps.docker-build.outputs.digest }}
         run: cosign verify --key cosign.pub --insecure-ignore-tlog=true "$IMAGE_REF"
+      - name: Notify Image Updater
+        env:
+          ARGOCD_URL: ${{ secrets.ARGOCD_URL }}
+          WEBHOOK_SECRET: ${{ secrets.IMAGE_UPDATER_WEBHOOK_SECRET }}
+          REGISTRY: ${{ secrets.REGISTRY_URL }}
+          REPOSITORY: websocket-dc
+          TAG: ${{ github.run_number }}-${{ steps.vars.outputs.sha_short }}
+          DIGEST: ${{ steps.docker-build.outputs.digest }}
+          EVENT_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          jq -n \
+            --arg id "$EVENT_ID" \
+            --arg registry "$REGISTRY" \
+            --arg repo "$REPOSITORY" \
+            --arg tag "$TAG" \
+            --arg digest "$DIGEST" \
+            '{
+              specversion: "1.0",
+              id: $id,
+              type: "registry.image.push",
+              source: ("https://" + $registry),
+              subject: ($repo + ":" + $tag),
+              time: (now | todate),
+              datacontenttype: "application/json",
+              data: {registry: $registry, repository: $repo, tag: $tag, digest: $digest}
+            }' |
+          curl --fail-with-body -sS --retry 3 --retry-all-errors \
+            -X POST "https://${ARGOCD_URL}?type=cloudevents" \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
+            --data-binary @-
