@@ -1,12 +1,12 @@
 # Install dependencies only when needed
-FROM node:24-alpine AS deps
+FROM node:24.22.1-alpine AS deps
 WORKDIR /app
 COPY package.json ./
 COPY package-lock.json ./
 RUN npm install
 
 
-FROM node:24-alpine as builder
+FROM node:24.22.1-alpine as builder
 WORKDIR /app
 
 ENV PATH /app/node_modules/.bin:$PATH
